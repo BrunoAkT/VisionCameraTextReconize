@@ -1,52 +1,27 @@
 import NoCameraDeviceError from '@/components/NoCameraDeviceError';
-import PermissionsPage from '@/components/Permission';
-import React, { useRef, useState } from 'react'
-import { StyleSheet } from 'react-native';
-import { useCameraDevice, useCameraPermission } from 'react-native-vision-camera'
-import { Camera } from 'react-native-vision-camera-text-recognition';
+import React, { useState } from 'react';
+import { View, Text } from 'react-native';
+import { Camera, useCameraDevice } from 'react-native-vision-camera';
+import { useHeartRateProcessor } from '@/components/useHeartRateProcessor'; 
 
-function App() {
-    const [data, setData] = useState(null)
-    const device = useCameraDevice('back');
-    const { hasPermission } = useCameraPermission();
+export default function PPGCamera() {
+  const device = useCameraDevice('back');
+  const [bpm, setBpm] = useState<number | null>(null);
+  const frameProcessor = useHeartRateProcessor(setBpm);
 
-    if (!hasPermission) return <PermissionsPage />
-    if (device == null) return <NoCameraDeviceError />
+  if (!device) return <NoCameraDeviceError />;
 
-    const [lastResult, setLastResult] = useState('');
-
-    if (data?.resultText && data.resultText !== lastResult) {
-        setLastResult(data.resultText);
-        console.log(data.resultText);
-    }
-
-    const lastReadRef = useRef(Date.now());
-    const onOcrCallback = (d) => {
-        const now = Date.now();
-        if (now - lastReadRef.current >= 2000) { // 2 segundos
-            lastReadRef.current = now;
-            setData(d);
-        }
-    };
-
-    return (
-        <>
-            {!!device && (
-                <Camera
-                    style={StyleSheet.absoluteFill}
-                    device={device}
-                    isActive
-                    options={{
-                        language: 'latin'
-                    }}
-                    mode={'recognize'}
-                    callback={onOcrCallback}
-                />
-            )}
-        </>
-    )
+  return (
+    <View style={{ flex: 1 }}>
+      <Camera
+        style={{ flex: 1 }}
+        device={device}
+        isActive={true}
+        frameProcessor={frameProcessor}
+      />
+      <Text style={{ position: 'absolute', bottom: 40, fontSize: 24, textAlign: 'center', width: '100%', zIndex: 20 }}>
+        BPM: {bpm ?? 'Detectando...'}
+      </Text>
+    </View>
+  );
 }
-
-export default App;
-
-
